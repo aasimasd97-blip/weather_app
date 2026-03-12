@@ -1,77 +1,99 @@
-import React, { useState, useEffect } from 'react'
-import SearchBar from './components/SearchBar'
-import WeatherCard from './components/WeatherCard'
-import MapView from './components/MapView'
+import React, { useState } from "react"
+import SearchBar from "./components/SearchBar"
+import WeatherCard from "./components/WeatherCard"
+import MapView from "./components/MapView"
 
-const API_BASE = import.meta.env.VITE_BACKEND_URL || 'http://localhost:5000'
+const API_BASE = import.meta.env.VITE_BACKEND_URL || "http://localhost:5000"
 
 export default function App() {
+
   const [weather, setWeather] = useState(null)
+
+  const [background, setBackground] = useState("/world.jpg")
+  const [isVideo, setIsVideo] = useState(false)
+
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState(null)
-  const [units, setUnits] = useState('metric')
-  const [recent, setRecent] = useState(() => {
-    try {
-      return JSON.parse(localStorage.getItem('recent-searches') || '[]')
-    } catch { return [] }
-  })
-
-  useEffect(() => {
-    localStorage.setItem('recent-searches', JSON.stringify(recent))
-  }, [recent])
 
   const search = async (city) => {
+
     setLoading(true)
     setError(null)
-    try {
-      const url = `${API_BASE}/weather?city=${encodeURIComponent(city)}&units=${units}`
-      const res = await fetch(url)
-      if (!res.ok) {
-        const err = await res.json().catch(() => ({}))
-        throw new Error(err.error || 'Error fetching weather')
-      }
-      const data = await res.json()
-      // data is the simplified payload from backend
-      setWeather(data)
-      // update recent
-      setRecent(prev => [city, ...prev.filter(c => c.toLowerCase() !== city.toLowerCase())].slice(0, 6))
-    } catch (err) {
-      setError(err.message)
-      setWeather(null)
-    } finally {
-      setLoading(false)
-    }
-  }
 
-  const onToggleUnits = (newUnits) => {
-    setUnits(newUnits)
-    // If we already have a weather, re-fetch in new units
-    if (weather) {
-      search(weather.city)
+    try {
+
+      const res = await fetch(`${API_BASE}/weather?city=${city}`)
+      const data = await res.json()
+
+      setWeather(data)
+
+      const condition = data.condition.toLowerCase()
+
+      if (
+        condition.includes("rain") ||
+        condition.includes("drizzle") ||
+        condition.includes(" shower")||
+        condition.includes("Light rain shower")
+      ) {
+        setBackground("/rainy.mp4")
+        setIsVideo(true)
+      }
+
+      else if (
+        condition.includes("cloud") ||
+        condition.includes("overcast") ||
+        condition.includes("mist") ||
+        condition.includes("fog") ||
+        condition.includes("haze")
+      ) {
+        setBackground("/cloudy.mp4")
+        setIsVideo(true)
+      }
+
+      else {
+        setBackground("/sunny.mp4")
+        setIsVideo(true)
+      }
+
+    } catch (err) {
+      setError("City not found")
     }
+
+    setLoading(false)
   }
 
   return (
+
     <div className="app-container">
-      <header className="header">
-        <h1>Weather Statistics</h1>
-      </header>
-      <main className="main">
-        <SearchBar onSearch={search} recent={recent} onRecentClick={(c) => search(c)} />
+
+      {/* Image background before search */}
+      {!isVideo && (
+        <img src={background} className="video-bg" alt="background" />
+      )}
+
+      {/* Weather video background */}
+      {isVideo && (
+        <video key={background} autoPlay muted loop className="video-bg">
+          <source src={background} type="video/mp4"/>
+        </video>
+      )}
+
+      <div className="center-box">
+
+        <SearchBar onSearch={search} />
 
         {loading && <div className="loading">Loading...</div>}
         {error && <div className="error">{error}</div>}
 
         {weather && (
           <>
-            <WeatherCard data={weather} units={units} onToggleUnits={onToggleUnits} />
-            <MapView coords={weather.coords} city={weather.city} temp={weather.temperature} units={weather.units} />
+            <WeatherCard data={weather}/>
+            <MapView coords={weather.coords} city={weather.city}/>
           </>
         )}
-      </main>
-      <footer className="footer">
-        <small>Powered by OpenWeatherMap & Nominatim</small>
-      </footer>
+
+      </div>
+
     </div>
   )
 }
