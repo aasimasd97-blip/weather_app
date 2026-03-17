@@ -3,7 +3,7 @@ import SearchBar from "./components/SearchBar"
 import WeatherCard from "./components/WeatherCard"
 import MapView from "./components/MapView"
 
-const API_BASE = import.meta.env.VITE_BACKEND_URL || "http://localhost:5000"
+const API_BASE = import.meta.env.VITE_BACKEND_URL || "https://weather-app-luba.onrender.com"
 
 export default function App() {
 
