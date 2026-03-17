@@ -9,20 +9,25 @@ export default function App() {
 
   const [weather, setWeather] = useState(null)
 
+  // units: 'metric' for Celsius, 'imperial' for Fahrenheit
+  const [units, setUnits] = useState('metric')
+
   const [background, setBackground] = useState("/world.jpg")
   const [isVideo, setIsVideo] = useState(false)
 
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState(null)
 
-  const search = async (city) => {
+  const search = async (city, unitsParam) => {
+
+    const unitsToUse = unitsParam || units
 
     setLoading(true)
     setError(null)
 
     try {
 
-      const res = await fetch(`${API_BASE}/weather?city=${city}`)
+      const res = await fetch(`${API_BASE}/weather?city=${encodeURIComponent(city)}&units=${unitsToUse}`)
       const data = await res.json()
 
       setWeather(data)
@@ -62,6 +67,15 @@ export default function App() {
     setLoading(false)
   }
 
+  const onToggleUnits = (newUnits) => {
+    if (!newUnits || (newUnits !== 'metric' && newUnits !== 'imperial')) return
+    // Update units state then re-fetch current city in selected units
+    setUnits(newUnits)
+    if (weather && weather.city) {
+      search(weather.city, newUnits)
+    }
+  }
+
   return (
 
     <div className="app-container">
@@ -87,8 +101,8 @@ export default function App() {
 
         {weather && (
           <>
-            <WeatherCard data={weather}/>
-            <MapView coords={weather.coords} city={weather.city}/>
+            <WeatherCard data={weather} units={units} onToggleUnits={onToggleUnits} />
+            <MapView coords={weather.coords} city={weather.city} temp={weather.temperature} units={units} />
           </>
         )}
 
